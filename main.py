@@ -57,15 +57,19 @@ def health():
 
 @app.get("/debug/env")
 def debug_env():
-    """Temporary: check if env vars are loaded correctly on Railway."""
     import os
-    email = os.environ.get("SUPER_ADMIN_EMAIL", "NOT SET")
-    pwd   = os.environ.get("SUPER_ADMIN_PASSWORD", "NOT SET")
+    db_url = os.environ.get("DATABASE_URL", "")
+    if db_url:
+        db_type = "PostgreSQL ✅" if "postgres" in db_url else "Other"
+    else:
+        db_type = "SQLite (data lost on redeploy!) ❌"
+
     return {
-        "SUPER_ADMIN_EMAIL":    email,
-        "SUPER_ADMIN_PASSWORD": "SET" if pwd != "NOT SET" else "NOT SET",
-        "SECRET_KEY":           "SET" if os.environ.get("SECRET_KEY") else "NOT SET",
+        "SUPER_ADMIN_EMAIL":    os.environ.get("SUPER_ADMIN_EMAIL", "NOT SET"),
+        "SUPER_ADMIN_PASSWORD": "SET ✅" if os.environ.get("SUPER_ADMIN_PASSWORD") else "NOT SET ❌",
+        "SECRET_KEY":           "SET ✅" if os.environ.get("SECRET_KEY") else "NOT SET ❌",
         "PUBLIC_URL":           os.environ.get("PUBLIC_URL", "NOT SET"),
+        "DATABASE":             db_type,
     }
 
 
