@@ -1,0 +1,32 @@
+# Environment & secrets
+.env
+*.env
+
+# Database
+data/
+*.db
+*.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+
+# PyInstaller
+dist/
+build/
+*.spec
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

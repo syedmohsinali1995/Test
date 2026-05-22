@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — AI Calling Agent</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  body { background:#f0f4f8; }
+  .sidebar { width:240px; min-height:100vh; background:#0f2027; position:fixed; top:0; left:0; }
+  .sidebar .brand { color:#00d4aa; font-size:1.1rem; font-weight:700; padding:20px; border-bottom:1px solid #203a43; }
+  .sidebar .nav-link { color:#adb5bd; padding:12px 20px; display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .sidebar .nav-link:hover, .sidebar .nav-link.active { color:#00d4aa; background:rgba(0,212,170,.1); }
+  .main-content { margin-left:240px; padding:24px; }
+  .stat-card { border:none; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .stat-icon { width:52px; height:52px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.4rem; }
+  .btn-primary { background:#00d4aa; border:none; }
+  .btn-primary:hover { background:#00b894; }
+  .topbar { background:#fff; border-radius:12px; padding:14px 20px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,.05); display:flex; justify-content:space-between; align-items:center; }
+  .card { border:none; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="brand">🏠 AI Calling Agent</div>
+  <nav class="mt-2">
+    <a href="dashboard.html" class="nav-link active"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    <a href="campaigns.html" class="nav-link"><i class="bi bi-telephone-outbound"></i> Campaigns</a>
+    <a href="leads.html" class="nav-link"><i class="bi bi-people"></i> Leads & Records</a>
+    <a href="call-logs.html" class="nav-link"><i class="bi bi-journal-text"></i> Call Logs</a>
+    <hr style="border-color:#203a43; margin:8px 16px;">
+    <a href="#" class="nav-link" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Logout</a>
+  </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+  <div class="topbar">
+    <div>
+      <h5 class="mb-0">Dashboard</h5>
+      <small class="text-muted" id="bizName"></small>
+    </div>
+    <span class="badge bg-success px-3 py-2">🟢 Agent Active</span>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card stat-card p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon" style="background:#e3f9f5">👥</div>
+          <div>
+            <div class="text-muted small">Total Leads</div>
+            <div class="fs-3 fw-bold" id="totalLeads">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon" style="background:#fff3e0">🏠</div>
+          <div>
+            <div class="text-muted small">Viewings Booked</div>
+            <div class="fs-3 fw-bold" id="totalViewings">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon" style="background:#fce4ec">📞</div>
+          <div>
+            <div class="text-muted small">Total Calls</div>
+            <div class="fs-3 fw-bold" id="totalCalls">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon" style="background:#e8f5e9">📋</div>
+          <div>
+            <div class="text-muted small">Campaigns</div>
+            <div class="fs-3 fw-bold" id="totalCampaigns">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Call -->
+  <div class="card p-4 mb-4">
+    <h6 class="mb-3 fw-semibold">📞 Make a Quick Call</h6>
+    <div class="row g-2">
+      <div class="col-md-8">
+        <input type="tel" id="quickPhone" class="form-control" placeholder="+923001234567 (E.164 format)">
+      </div>
+      <div class="col-md-4">
+        <button class="btn btn-primary w-100" onclick="quickCall()">Call Now</button>
+      </div>
+    </div>
+    <div id="callResult" class="mt-2 small"></div>
+  </div>
+
+  <!-- Recent Campaigns -->
+  <div class="card p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0 fw-semibold">Recent Campaigns</h6>
+      <a href="campaigns.html" class="btn btn-sm btn-outline-success">View All</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr><th>Name</th><th>Total</th><th>Called</th><th>Leads</th><th>Viewings</th><th>Status</th></tr>
+        </thead>
+        <tbody id="campaignTable">
+          <tr><td colspan="6" class="text-center text-muted py-3">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem('token');
+if (!token) window.location.href = '/app/login.html';
+document.getElementById('bizName').textContent = localStorage.getItem('business_name') || '';
+
+const api = (url, opts={}) => fetch(url, {
+  headers: {'Authorization':'Bearer '+token, ...(opts.headers||{})}, ...opts
+});
+
+async function loadStats() {
+  try {
+    const r = await api('/stats');
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('totalLeads').textContent     = d.total_leads     ?? 0;
+    document.getElementById('totalViewings').textContent  = d.total_viewings  ?? 0;
+    document.getElementById('totalCalls').textContent     = d.total_calls     ?? 0;
+    document.getElementById('totalCampaigns').textContent = d.total_campaigns ?? 0;
+  } catch(e) {}
+}
+
+async function loadCampaigns() {
+  try {
+    const r = await api('/campaigns');
+    if (!r.ok) return;
+    const list = await r.json();
+    const tbody = document.getElementById('campaignTable');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">No campaigns yet — <a href="campaigns.html">create one</a></td></tr>';
+      return;
+    }
+    const statusColor = {completed:'success', running:'primary', paused:'warning', stopped:'secondary'};
+    tbody.innerHTML = list.slice(0,5).map(c => `
+      <tr>
+        <td class="fw-semibold">${c.name}</td>
+        <td>${c.total}</td>
+        <td>${c.called} <small class="text-muted">(${c.progress_pct}%)</small></td>
+        <td><span class="text-success fw-semibold">${c.leads_saved}</span></td>
+        <td><span class="text-warning fw-semibold">${c.viewings_booked}</span></td>
+        <td><span class="badge bg-${statusColor[c.status]||'secondary'}">${c.status}</span></td>
+      </tr>`).join('');
+  } catch(e) {}
+}
+
+async function quickCall() {
+  const phone = document.getElementById('quickPhone').value.trim();
+  if (!phone) return;
+  const el = document.getElementById('callResult');
+  el.innerHTML = '<span class="text-muted">Initiating call...</span>';
+  const r = await api('/call', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({phone_number: phone})
+  });
+  const d = await r.json();
+  el.innerHTML = r.ok
+    ? `<span class="text-success">✅ Call started! Call ID: ${d.call_id}</span>`
+    : `<span class="text-danger">❌ ${d.detail}</span>`;
+}
+
+function logout() {
+  localStorage.clear();
+  window.location.href = '/app/login.html';
+}
+
+loadStats();
+loadCampaigns();
+</script>
+</body>
+</html>

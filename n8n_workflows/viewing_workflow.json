@@ -1,0 +1,92 @@
+{
+  "name": "Real Estate AI — Viewing Booked",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "viewing",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-viewing",
+      "name": "Webhook — Viewing Booked",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": { "respondWith": "text", "responseBody": "ok" },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [460, 160]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "YOUR_GOOGLE_SHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Viewings", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Viewing ID":   "={{ $json.body.viewing_id }}",
+            "Business":     "={{ $json.body.business }}",
+            "Name":         "={{ $json.body.customer_name }}",
+            "Phone":        "={{ $json.body.phone }}",
+            "Property":     "={{ $json.body.property_address }}",
+            "Date":         "={{ $json.body.viewing_date }}",
+            "Time":         "={{ $json.body.viewing_time }}",
+            "Booked At":    "={{ new Date().toLocaleDateString('ur-PK') }}"
+          }
+        }
+      },
+      "id": "google-sheets-viewing",
+      "name": "Google Sheets — Add Viewing",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [460, 300],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "YOUR_GOOGLE_CRED_ID", "name": "Google Sheets" } }
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@gmail.com",
+        "subject": "=🏠 ملاقات بک ہوئی: {{ $json.body.customer_name }}",
+        "message": "=<h2>نئی جائیداد دیکھنے کی ملاقات</h2>\n<table>\n<tr><td><b>نام:</b></td><td>{{ $json.body.customer_name }}</td></tr>\n<tr><td><b>فون:</b></td><td>{{ $json.body.phone }}</td></tr>\n<tr><td><b>جائیداد:</b></td><td>{{ $json.body.property_address }}</td></tr>\n<tr><td><b>تاریخ:</b></td><td>{{ $json.body.viewing_date }}</td></tr>\n<tr><td><b>وقت:</b></td><td>{{ $json.body.viewing_time }}</td></tr>\n<tr><td><b>Viewing ID:</b></td><td>{{ $json.body.viewing_id }}</td></tr>\n</table>",
+        "options": { "appendAttribution": false }
+      },
+      "id": "email-viewing",
+      "name": "Email Alert — Viewing",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [460, 440],
+      "credentials": { "gmailOAuth2": { "id": "YOUR_GMAIL_CRED_ID", "name": "Gmail" } }
+    },
+    {
+      "parameters": {
+        "phoneNumberId": "YOUR_WHATSAPP_PHONE_NUMBER_ID",
+        "to": "={{ $json.body.phone.replace('+', '') }}",
+        "messageType": "text",
+        "text": "=السلام علیکم {{ $json.body.customer_name }}! 🏠\n\n✅ آپ کی جائیداد دیکھنے کی ملاقات بک ہوئی:\n\n📍 جائیداد: {{ $json.body.property_address }}\n📅 تاریخ: {{ $json.body.viewing_date }}\n⏰ وقت: {{ $json.body.viewing_time }}\n🔖 بکنگ ID: {{ $json.body.viewing_id }}\n\nہمارا ایجنٹ مقررہ وقت پر آپ سے ملے گا۔\n— {{ $json.body.business }}"
+      },
+      "id": "whatsapp-viewing",
+      "name": "WhatsApp — Viewing Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [460, 580],
+      "credentials": { "whatsAppTriggerApi": { "id": "YOUR_WA_CRED_ID", "name": "WhatsApp" } }
+    }
+  ],
+  "connections": {
+    "Webhook — Viewing Booked": {
+      "main": [[
+        { "node": "Respond",                       "type": "main", "index": 0 },
+        { "node": "Google Sheets — Add Viewing",   "type": "main", "index": 0 },
+        { "node": "Email Alert — Viewing",         "type": "main", "index": 0 },
+        { "node": "WhatsApp — Viewing Confirmation","type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

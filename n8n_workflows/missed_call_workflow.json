@@ -1,0 +1,65 @@
+{
+  "name": "Real Estate AI — Missed Call",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "missed-call",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-missed",
+      "name": "Webhook — Missed Call",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": { "respondWith": "text", "responseBody": "ok" },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [460, 160]
+    },
+    {
+      "parameters": {
+        "phoneNumberId": "YOUR_WHATSAPP_PHONE_NUMBER_ID",
+        "to": "={{ $json.body.phone.replace('+', '') }}",
+        "messageType": "text",
+        "text": "=السلام علیکم! 📞\n\n{{ $json.body.business }} کی طرف سے آپ سے رابطہ کرنے کی کوشش کی گئی۔\n\nہم جلد دوبارہ کال کریں گے۔ اگر آپ ابھی بات کرنا چاہتے ہیں تو اس پیغام کا جواب دیں۔"
+      },
+      "id": "whatsapp-missed",
+      "name": "WhatsApp — Missed Call Notice",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": { "whatsAppTriggerApi": { "id": "YOUR_WA_CRED_ID", "name": "WhatsApp" } }
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@gmail.com",
+        "subject": "=📞 مس کال: {{ $json.body.phone }} ({{ $json.body.business }})",
+        "message": "=<h3>مس کال الرٹ</h3>\n<p>فون: {{ $json.body.phone }}</p>\n<p>Call ID: {{ $json.body.call_id }}</p>\n<p>وقت: {{ new Date().toLocaleString('ur-PK') }}</p>",
+        "options": { "appendAttribution": false }
+      },
+      "id": "email-missed",
+      "name": "Email — Missed Call Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [460, 440],
+      "credentials": { "gmailOAuth2": { "id": "YOUR_GMAIL_CRED_ID", "name": "Gmail" } }
+    }
+  ],
+  "connections": {
+    "Webhook — Missed Call": {
+      "main": [[
+        { "node": "Respond",                  "type": "main", "index": 0 },
+        { "node": "WhatsApp — Missed Call Notice", "type": "main", "index": 0 },
+        { "node": "Email — Missed Call Alert", "type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

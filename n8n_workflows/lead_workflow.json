@@ -1,0 +1,96 @@
+{
+  "name": "Real Estate AI — New Lead",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-lead",
+      "name": "Webhook — New Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "ok"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [460, 160]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "YOUR_GOOGLE_SHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Leads", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead ID":       "={{ $json.body.lead_id }}",
+            "Business":      "={{ $json.body.business }}",
+            "Name":          "={{ $json.body.customer_name }}",
+            "Phone":         "={{ $json.body.phone }}",
+            "Intent":        "={{ $json.body.intent }}",
+            "Budget":        "={{ $json.body.budget }}",
+            "Area":          "={{ $json.body.area }}",
+            "Property Type": "={{ $json.body.property_type }}",
+            "Date":          "={{ new Date().toLocaleDateString('ur-PK') }}"
+          }
+        }
+      },
+      "id": "google-sheets-lead",
+      "name": "Google Sheets — Add Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [460, 300],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "YOUR_GOOGLE_CRED_ID", "name": "Google Sheets" } }
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@gmail.com",
+        "subject": "=🏠 نئی لیڈ: {{ $json.body.customer_name }} ({{ $json.body.business }})",
+        "message": "=<h2>نئی رئیل اسٹیٹ لیڈ</h2>\n<table>\n<tr><td><b>نام:</b></td><td>{{ $json.body.customer_name }}</td></tr>\n<tr><td><b>فون:</b></td><td>{{ $json.body.phone }}</td></tr>\n<tr><td><b>ارادہ:</b></td><td>{{ $json.body.intent }}</td></tr>\n<tr><td><b>بجٹ:</b></td><td>{{ $json.body.budget }}</td></tr>\n<tr><td><b>علاقہ:</b></td><td>{{ $json.body.area }}</td></tr>\n<tr><td><b>لیڈ ID:</b></td><td>{{ $json.body.lead_id }}</td></tr>\n</table>",
+        "options": { "appendAttribution": false }
+      },
+      "id": "email-lead",
+      "name": "Email Alert — New Lead",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [460, 440],
+      "credentials": { "gmailOAuth2": { "id": "YOUR_GMAIL_CRED_ID", "name": "Gmail" } }
+    },
+    {
+      "parameters": {
+        "phoneNumberId": "YOUR_WHATSAPP_PHONE_NUMBER_ID",
+        "to": "={{ $json.body.phone.replace('+', '') }}",
+        "messageType": "text",
+        "text": "=السلام علیکم {{ $json.body.customer_name }}! 👋\n\nآپ کی لیڈ ({{ $json.body.lead_id }}) محفوظ ہو گئی ہے۔\nہمارا ایجنٹ جلد آپ سے رابطہ کرے گا۔\n\nشکریہ — {{ $json.body.business }}"
+      },
+      "id": "whatsapp-lead",
+      "name": "WhatsApp — Lead Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [460, 580],
+      "credentials": { "whatsAppTriggerApi": { "id": "YOUR_WA_CRED_ID", "name": "WhatsApp" } }
+    }
+  ],
+  "connections": {
+    "Webhook — New Lead": {
+      "main": [[
+        { "node": "Respond",                    "type": "main", "index": 0 },
+        { "node": "Google Sheets — Add Lead",   "type": "main", "index": 0 },
+        { "node": "Email Alert — New Lead",     "type": "main", "index": 0 },
+        { "node": "WhatsApp — Lead Confirmation","type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

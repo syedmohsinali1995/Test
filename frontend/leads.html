@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leads & Records — AI Calling Agent</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  body { background:#f0f4f8; }
+  .sidebar { width:240px; min-height:100vh; background:#0f2027; position:fixed; top:0; left:0; }
+  .sidebar .brand { color:#00d4aa; font-size:1.1rem; font-weight:700; padding:20px; border-bottom:1px solid #203a43; }
+  .sidebar .nav-link { color:#adb5bd; padding:12px 20px; display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .sidebar .nav-link:hover, .sidebar .nav-link.active { color:#00d4aa; background:rgba(0,212,170,.1); }
+  .main-content { margin-left:240px; padding:24px; }
+  .card { border:none; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .topbar { background:#fff; border-radius:12px; padding:14px 20px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,.05); display:flex; justify-content:space-between; align-items:center; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="brand">🏠 AI Calling Agent</div>
+  <nav class="mt-2">
+    <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    <a href="campaigns.html" class="nav-link"><i class="bi bi-telephone-outbound"></i> Campaigns</a>
+    <a href="leads.html" class="nav-link active"><i class="bi bi-people"></i> Leads & Records</a>
+    <a href="call-logs.html" class="nav-link"><i class="bi bi-journal-text"></i> Call Logs</a>
+    <hr style="border-color:#203a43; margin:8px 16px;">
+    <a href="#" class="nav-link" onclick="localStorage.clear();window.location.href='/app/login.html'">
+      <i class="bi bi-box-arrow-right"></i> Logout
+    </a>
+  </nav>
+</div>
+
+<div class="main-content">
+  <div class="topbar">
+    <div>
+      <h5 class="mb-0">Leads & Records</h5>
+      <small class="text-muted">All data captured automatically during Urdu AI calls</small>
+    </div>
+    <button class="btn btn-sm btn-outline-success" onclick="loadData()">
+      <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <button class="nav-link active" onclick="switchTab('leads')">
+        👥 Leads <span class="badge bg-primary ms-1" id="leadsCount">0</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" onclick="switchTab('viewings')">
+        🏠 Viewings <span class="badge bg-warning text-dark ms-1" id="viewingsCount">0</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" onclick="switchTab('inquiries')">
+        ❓ Inquiries <span class="badge bg-secondary ms-1" id="inquiriesCount">0</span>
+      </button>
+    </li>
+  </ul>
+
+  <div class="card p-3">
+    <div id="tableContainer">Loading...</div>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem('token');
+if (!token) window.location.href = '/app/login.html';
+
+let currentTab = 'leads';
+const api = (url) => fetch(url, {headers:{'Authorization':'Bearer '+token}});
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-tabs .nav-link').forEach((el, i) => {
+    el.classList.toggle('active',
+      (i===0&&tab==='leads') || (i===1&&tab==='viewings') || (i===2&&tab==='inquiries')
+    );
+  });
+  loadData();
+}
+
+async function loadData() {
+  const el = document.getElementById('tableContainer');
+  el.innerHTML = '<div class="text-center text-muted py-3">Loading...</div>';
+
+  try {
+    const r = await api(`/${currentTab}`);
+    const list = await r.json();
+
+    // Update count badges
+    if (currentTab === 'leads')    document.getElementById('leadsCount').textContent    = list.length;
+    if (currentTab === 'viewings') document.getElementById('viewingsCount').textContent = list.length;
+    if (currentTab === 'inquiries')document.getElementById('inquiriesCount').textContent= list.length;
+
+    if (!list.length) {
+      el.innerHTML = `<div class="text-center text-muted py-5">
+        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+        No ${currentTab} yet. They will appear here after AI calls are made.
+      </div>`;
+      return;
+    }
+
+    if (currentTab === 'leads') {
+      el.innerHTML = `
+        <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>ID</th><th>Name</th><th>Phone</th><th>Intent</th><th>Budget</th><th>Area</th><th>Property Type</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            ${list.map(r => `<tr>
+              <td><code class="small">${r.id}</code></td>
+              <td class="fw-semibold">${r.customer_name || '—'}</td>
+              <td>${r.phone_number}</td>
+              <td><span class="badge ${r.intent==='buy'?'bg-primary':'bg-warning text-dark'}">${r.intent==='buy'?'Buy':'Rent'}</span></td>
+              <td>${r.budget || '—'}</td>
+              <td>${r.preferred_area || '—'}</td>
+              <td>${r.property_type || '—'}</td>
+              <td class="text-muted small">${r.created_at?.split('T')[0]||''}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        </div>`;
+
+    } else if (currentTab === 'viewings') {
+      el.innerHTML = `
+        <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>ID</th><th>Name</th><th>Phone</th><th>Property</th><th>Date</th><th>Time</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            ${list.map(r => `<tr>
+              <td><code class="small">${r.id}</code></td>
+              <td class="fw-semibold">${r.customer_name || '—'}</td>
+              <td>${r.phone_number}</td>
+              <td>${r.property_address || '—'}</td>
+              <td>${r.viewing_date || '—'}</td>
+              <td>${r.viewing_time || '—'}</td>
+              <td><span class="badge bg-success">${r.status}</span></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        </div>`;
+
+    } else {
+      el.innerHTML = `
+        <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>ID</th><th>Name</th><th>Phone</th><th>Inquiry Details</th><th>Status</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            ${list.map(r => `<tr>
+              <td><code class="small">${r.id}</code></td>
+              <td class="fw-semibold">${r.customer_name || '—'}</td>
+              <td>${r.phone_number}</td>
+              <td>${r.inquiry_details || '—'}</td>
+              <td><span class="badge bg-secondary">${r.status}</span></td>
+              <td class="text-muted small">${r.created_at?.split('T')[0]||''}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        </div>`;
+    }
+  } catch(e) {
+    el.innerHTML = '<div class="text-danger p-3">Failed to load data.</div>';
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Call Logs — AI Calling Agent</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  body { background:#f0f4f8; }
+  .sidebar { width:240px; min-height:100vh; background:#0f2027; position:fixed; top:0; left:0; }
+  .sidebar .brand { color:#00d4aa; font-size:1.1rem; font-weight:700; padding:20px; border-bottom:1px solid #203a43; }
+  .sidebar .nav-link { color:#adb5bd; padding:12px 20px; display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .sidebar .nav-link:hover, .sidebar .nav-link.active { color:#00d4aa; background:rgba(0,212,170,.1); }
+  .main-content { margin-left:240px; padding:24px; }
+  .card { border:none; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .topbar { background:#fff; border-radius:12px; padding:14px 20px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,.05); display:flex; justify-content:space-between; align-items:center; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="brand">🏠 AI Calling Agent</div>
+  <nav class="mt-2">
+    <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    <a href="campaigns.html" class="nav-link"><i class="bi bi-telephone-outbound"></i> Campaigns</a>
+    <a href="leads.html" class="nav-link"><i class="bi bi-people"></i> Leads & Records</a>
+    <a href="call-logs.html" class="nav-link active"><i class="bi bi-journal-text"></i> Call Logs</a>
+    <hr style="border-color:#203a43; margin:8px 16px;">
+    <a href="#" class="nav-link" onclick="localStorage.clear();window.location.href='/app/login.html'">
+      <i class="bi bi-box-arrow-right"></i> Logout
+    </a>
+  </nav>
+</div>
+
+<div class="main-content">
+  <div class="topbar">
+    <div>
+      <h5 class="mb-0">Call Logs</h5>
+      <small class="text-muted">Full history of all AI calls with transcripts</small>
+    </div>
+    <button class="btn btn-sm btn-outline-success" onclick="load()">
+      <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+  </div>
+
+  <div class="card p-3">
+    <div id="container">Loading...</div>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem('token');
+if (!token) window.location.href = '/app/login.html';
+
+async function load() {
+  const el = document.getElementById('container');
+  const r = await fetch('/call-logs', {headers:{'Authorization':'Bearer '+token}});
+  const list = await r.json();
+
+  if (!list.length) {
+    el.innerHTML = `<div class="text-center text-muted py-5">
+      <i class="bi bi-telephone-x fs-1 d-block mb-2"></i>
+      No call logs yet. Logs appear after calls are made.
+    </div>`;
+    return;
+  }
+
+  const statusColor = { completed:'success', missed:'danger', 'in-progress':'primary' };
+
+  el.innerHTML = `<div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Phone</th><th>Duration</th><th>Status</th><th>Summary</th><th>Recording</th><th>Date</th></tr>
+      </thead>
+      <tbody>
+        ${list.map(c => `<tr>
+          <td class="fw-semibold">${c.phone_number}</td>
+          <td>${c.duration_seconds ? c.duration_seconds + 's' : '—'}</td>
+          <td><span class="badge bg-${statusColor[c.status]||'secondary'}">${c.status}</span></td>
+          <td class="small text-muted" style="max-width:250px">${c.summary || '—'}</td>
+          <td>${c.recording_url ? `<a href="${c.recording_url}" target="_blank" class="btn btn-sm btn-outline-primary">▶ Play</a>` : '—'}</td>
+          <td class="text-muted small">${c.started_at?.split('T')[0]||''}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+load();
+</script>
+</body>
+</html>

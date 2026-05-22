@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup Wizard — AI Calling Agent</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body { background: #f0f4f8; }
+  .card { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+  .step-badge { width:36px; height:36px; background:#00d4aa; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; }
+  .btn-primary { background:#00d4aa; border:none; }
+  .btn-primary:hover { background:#00b894; }
+  .form-text { font-size: 0.8rem; }
+</style>
+</head>
+<body>
+<div class="container py-5" style="max-width:680px">
+  <div class="text-center mb-4">
+    <h3>🏠 AI Agent Setup Wizard</h3>
+    <p class="text-muted">Enter your API keys once — your Urdu AI calling agent will be created automatically</p>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="card p-4 mb-3">
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <div class="step-badge">1</div>
+      <div>
+        <h5 class="mb-0">Vapi.ai Keys</h5>
+        <small class="text-muted">Sign up at vapi.ai — free trial available</small>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">API Key <span class="text-danger">*</span></label>
+      <input type="password" id="vapiKey" class="form-control" placeholder="vapi_...">
+      <div class="form-text">vapi.ai → Dashboard → API Keys → Copy key</div>
+    </div>
+    <div class="mb-0">
+      <label class="form-label fw-semibold">Phone Number ID <span class="text-danger">*</span></label>
+      <input type="text" id="vapiPhone" class="form-control" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+      <div class="form-text">vapi.ai → Phone Numbers → Buy a number → Click it → Copy the ID</div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="card p-4 mb-3">
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <div class="step-badge">2</div>
+      <div>
+        <h5 class="mb-0">Anthropic (Claude AI Brain)</h5>
+        <small class="text-muted">Sign up at console.anthropic.com</small>
+      </div>
+    </div>
+    <div class="mb-0">
+      <label class="form-label fw-semibold">API Key <span class="text-danger">*</span></label>
+      <input type="password" id="anthropicKey" class="form-control" placeholder="sk-ant-...">
+      <div class="form-text">console.anthropic.com → API Keys → Create Key</div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="card p-4 mb-3">
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <div class="step-badge">3</div>
+      <div>
+        <h5 class="mb-0">Twilio — WhatsApp Follow-ups <span class="badge bg-secondary ms-1">Optional</span></h5>
+        <small class="text-muted">Sign up at twilio.com — free $15 trial credit</small>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Account SID</label>
+      <input type="text" id="twilioSid" class="form-control" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Auth Token</label>
+      <input type="password" id="twilioToken" class="form-control" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+    </div>
+    <div class="mb-0">
+      <label class="form-label fw-semibold">WhatsApp Number</label>
+      <input type="text" id="twilioWA" class="form-control" value="whatsapp:+14155238886">
+      <div class="form-text">For testing use sandbox: whatsapp:+14155238886</div>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="card p-4 mb-4">
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <div class="step-badge">4</div>
+      <div>
+        <h5 class="mb-0">Business Settings</h5>
+      </div>
+    </div>
+    <div class="mb-0">
+      <label class="form-label fw-semibold">Business Hours</label>
+      <input type="text" id="bizHours" class="form-control" value="Monday to Saturday, 9 AM to 6 PM">
+    </div>
+  </div>
+
+  <button class="btn btn-primary w-100 py-3 fs-5 fw-semibold" onclick="saveSetup()">
+    ✅ Complete Setup & Create AI Agent
+  </button>
+  <div id="alertBox" class="alert mt-3 d-none"></div>
+  <div id="spinner" class="text-center mt-3 d-none">
+    <div class="spinner-border text-success"></div>
+    <p class="mt-2 text-muted">Creating your Urdu AI agent on Vapi... please wait</p>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem('token');
+if (!token) window.location.href = '/app/login.html';
+
+function showAlert(msg, type='danger') {
+  const el = document.getElementById('alertBox');
+  el.className = `alert alert-${type} mt-3`;
+  el.textContent = msg;
+}
+
+async function saveSetup() {
+  const body = {
+    vapi_api_key:           document.getElementById('vapiKey').value.trim(),
+    vapi_phone_number_id:   document.getElementById('vapiPhone').value.trim(),
+    anthropic_api_key:      document.getElementById('anthropicKey').value.trim(),
+    twilio_account_sid:     document.getElementById('twilioSid').value.trim(),
+    twilio_auth_token:      document.getElementById('twilioToken').value.trim(),
+    twilio_whatsapp_number: document.getElementById('twilioWA').value.trim(),
+    business_hours:         document.getElementById('bizHours').value.trim(),
+  };
+
+  if (!body.vapi_api_key || !body.vapi_phone_number_id || !body.anthropic_api_key) {
+    return showAlert('Vapi API Key, Phone Number ID, and Anthropic API Key are required.');
+  }
+
+  document.getElementById('spinner').classList.remove('d-none');
+  document.getElementById('alertBox').classList.add('d-none');
+
+  const res = await fetch('/setup/save-keys', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+token},
+    body: JSON.stringify(body)
+  });
+
+  document.getElementById('spinner').classList.add('d-none');
+  const data = await res.json();
+  if (!res.ok) return showAlert(data.detail || 'Setup failed. Check your API keys.');
+  showAlert('Setup complete! Redirecting to dashboard...', 'success');
+  setTimeout(() => window.location.href = '/app/dashboard.html', 1500);
+}
+</script>
+</body>
+</html>

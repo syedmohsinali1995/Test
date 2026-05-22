@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaigns — AI Calling Agent</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  body { background:#f0f4f8; }
+  .sidebar { width:240px; min-height:100vh; background:#0f2027; position:fixed; top:0; left:0; }
+  .sidebar .brand { color:#00d4aa; font-size:1.1rem; font-weight:700; padding:20px; border-bottom:1px solid #203a43; }
+  .sidebar .nav-link { color:#adb5bd; padding:12px 20px; display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .sidebar .nav-link:hover, .sidebar .nav-link.active { color:#00d4aa; background:rgba(0,212,170,.1); }
+  .main-content { margin-left:240px; padding:24px; }
+  .card { border:none; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .btn-primary { background:#00d4aa; border:none; }
+  .btn-primary:hover { background:#00b894; }
+  .topbar { background:#fff; border-radius:12px; padding:14px 20px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,.05); display:flex; justify-content:space-between; align-items:center; }
+  .progress { height:8px; border-radius:4px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="brand">🏠 AI Calling Agent</div>
+  <nav class="mt-2">
+    <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    <a href="campaigns.html" class="nav-link active"><i class="bi bi-telephone-outbound"></i> Campaigns</a>
+    <a href="leads.html" class="nav-link"><i class="bi bi-people"></i> Leads & Records</a>
+    <a href="call-logs.html" class="nav-link"><i class="bi bi-journal-text"></i> Call Logs</a>
+    <hr style="border-color:#203a43; margin:8px 16px;">
+    <a href="#" class="nav-link" onclick="localStorage.clear();window.location.href='/app/login.html'">
+      <i class="bi bi-box-arrow-right"></i> Logout
+    </a>
+  </nav>
+</div>
+
+<div class="main-content">
+  <div class="topbar">
+    <div>
+      <h5 class="mb-0">Bulk Calling Campaigns</h5>
+      <small class="text-muted">Upload leads and let the AI call them automatically in Urdu</small>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCampaignModal">
+      + New Campaign
+    </button>
+  </div>
+
+  <div class="card p-4">
+    <div id="campaignList">
+      <div class="text-center text-muted py-4">Loading campaigns...</div>
+    </div>
+  </div>
+</div>
+
+<!-- New Campaign Modal -->
+<div class="modal fade" id="newCampaignModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Start New Calling Campaign</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Campaign Name</label>
+          <input type="text" id="campName" class="form-control" placeholder="e.g. April 2025 Leads">
+        </div>
+
+        <ul class="nav nav-tabs mb-3" id="uploadTabs">
+          <li class="nav-item">
+            <button class="nav-link active" onclick="switchUpload('csv')">📄 Upload CSV File</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" onclick="switchUpload('manual')">✏️ Enter Numbers Manually</button>
+          </li>
+        </ul>
+
+        <!-- CSV Upload -->
+        <div id="csvUpload">
+          <div class="border rounded p-4 text-center bg-light">
+            <p class="text-muted mb-2">CSV Format (first row = headers):</p>
+            <code class="d-block mb-3">name,phone_number,area,budget,intent<br>Ahmed Ali,+923001234567,DHA Lahore,15000000,buy</code>
+            <input type="file" id="csvFile" accept=".csv" class="form-control">
+            <div class="form-text mt-2">Only <strong>phone_number</strong> is required. Other columns are optional.</div>
+          </div>
+        </div>
+
+        <!-- Manual Entry -->
+        <div id="manualEntry" style="display:none">
+          <label class="form-label fw-semibold">Phone Numbers (one per line)</label>
+          <textarea id="manualPhones" class="form-control" rows="6"
+            placeholder="+923001234567&#10;+923009876543&#10;+923331234567"></textarea>
+          <div class="form-text">Use E.164 format: +923001234567</div>
+        </div>
+
+        <div id="campAlert" class="alert mt-3 d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="startCampaign()">🚀 Start Campaign</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const token = localStorage.getItem('token');
+if (!token) window.location.href = '/app/login.html';
+
+let uploadMode = 'csv';
+const api = (url, opts={}) => fetch(url, {headers:{'Authorization':'Bearer '+token,...(opts.headers||{})}, ...opts});
+
+function switchUpload(mode) {
+  uploadMode = mode;
+  document.getElementById('csvUpload').style.display    = mode === 'csv'    ? '' : 'none';
+  document.getElementById('manualEntry').style.display  = mode === 'manual' ? '' : 'none';
+  document.querySelectorAll('#uploadTabs .nav-link').forEach((el, i) => {
+    el.classList.toggle('active', (i===0&&mode==='csv') || (i===1&&mode==='manual'));
+  });
+}
+
+async function loadCampaigns() {
+  try {
+    const r = await api('/campaigns');
+    const list = await r.json();
+    const el = document.getElementById('campaignList');
+
+    if (!list.length) {
+      el.innerHTML = `<div class="text-center py-5 text-muted">
+        <i class="bi bi-telephone-outbound fs-1 d-block mb-3"></i>
+        <p>No campaigns yet. Click <strong>"+ New Campaign"</strong> to start calling leads automatically.</p>
+      </div>`;
+      return;
+    }
+
+    const statusColor = {completed:'success', running:'primary', paused:'warning', stopped:'secondary'};
+    el.innerHTML = list.map(c => `
+      <div class="border rounded p-3 mb-3">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <span class="fw-semibold fs-6">${c.name}</span>
+            <span class="badge bg-${statusColor[c.status]||'secondary'} ms-2">${c.status}</span>
+            <div class="text-muted small mt-1">Created: ${c.created_at?.split('T')[0] || ''}</div>
+          </div>
+          <div class="d-flex gap-2">
+            ${c.status==='running'  ? `<button class="btn btn-sm btn-warning"  onclick="pause('${c.id}')">⏸ Pause</button>`  : ''}
+            ${c.status==='paused'   ? `<button class="btn btn-sm btn-primary"  onclick="resume('${c.id}')">▶ Resume</button>` : ''}
+            ${['running','paused'].includes(c.status) ? `<button class="btn btn-sm btn-danger" onclick="stop('${c.id}')">⏹ Stop</button>` : ''}
+          </div>
+        </div>
+        <div class="row text-center mt-3 g-2">
+          <div class="col"><div class="fw-bold">${c.total}</div><div class="text-muted small">Total</div></div>
+          <div class="col"><div class="fw-bold">${c.called}</div><div class="text-muted small">Called</div></div>
+          <div class="col"><div class="fw-bold text-success">${c.leads_saved}</div><div class="text-muted small">Leads</div></div>
+          <div class="col"><div class="fw-bold text-warning">${c.viewings_booked}</div><div class="text-muted small">Viewings</div></div>
+          <div class="col"><div class="fw-bold text-danger">${c.failed}</div><div class="text-muted small">Failed</div></div>
+        </div>
+        <div class="progress mt-2">
+          <div class="progress-bar bg-success" style="width:${c.progress_pct}%"></div>
+        </div>
+        <div class="text-muted small mt-1">${c.progress_pct}% complete</div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('campaignList').innerHTML = '<div class="text-danger p-3">Failed to load campaigns.</div>';
+  }
+}
+
+async function startCampaign() {
+  const name = document.getElementById('campName').value.trim();
+  const alertEl = document.getElementById('campAlert');
+  if (!name) { alertEl.className='alert alert-danger'; alertEl.textContent='Campaign name is required'; alertEl.classList.remove('d-none'); return; }
+
+  let r;
+  if (uploadMode === 'csv') {
+    const file = document.getElementById('csvFile').files[0];
+    if (!file) { alertEl.className='alert alert-danger'; alertEl.textContent='Please select a CSV file'; alertEl.classList.remove('d-none'); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('name', name);
+    r = await fetch('/campaign/upload-csv', {method:'POST', headers:{'Authorization':'Bearer '+token}, body:fd});
+  } else {
+    const lines = document.getElementById('manualPhones').value.trim().split('\n').filter(Boolean);
+    if (!lines.length) { alertEl.className='alert alert-danger'; alertEl.textContent='Enter at least one phone number'; alertEl.classList.remove('d-none'); return; }
+    const leads = lines.map(p => ({phone_number: p.trim()}));
+    r = await api('/campaign/start', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, leads})});
+  }
+
+  const d = await r.json();
+  if (!r.ok) { alertEl.className='alert alert-danger'; alertEl.textContent=d.detail||'Failed to start campaign'; alertEl.classList.remove('d-none'); return; }
+
+  bootstrap.Modal.getInstance(document.getElementById('newCampaignModal')).hide();
+  loadCampaigns();
+}
+
+async function pause(id)  { await api(`/campaign/${id}/pause`,  {method:'POST'}); loadCampaigns(); }
+async function resume(id) { await api(`/campaign/${id}/resume`, {method:'POST'}); loadCampaigns(); }
+async function stop(id)   {
+  if (confirm('Are you sure you want to stop this campaign?')) {
+    await api(`/campaign/${id}/stop`, {method:'POST'});
+    loadCampaigns();
+  }
+}
+
+loadCampaigns();
+setInterval(loadCampaigns, 10000);
+</script>
+</body>
+</html>
