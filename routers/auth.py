@@ -52,21 +52,28 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 
 @router.post("/register")
 def register(body: RegisterRequest, db: Session = Depends(get_db)):
-    if db.query(Tenant).filter(Tenant.email == body.email).first():
-        raise HTTPException(status_code=400, detail="Email already registered")
+    try:
+        if db.query(Tenant).filter(Tenant.email == body.email).first():
+            raise HTTPException(status_code=400, detail="Email already registered")
 
-    tenant = Tenant(
-        business_name=body.business_name,
-        email=body.email,
-        password_hash=hash_password(body.password),
-    )
-    db.add(tenant)
-    db.commit()
-    db.refresh(tenant)
+        tenant = Tenant(
+            business_name=body.business_name,
+            email=body.email,
+            password_hash=hash_password(body.password),
+        )
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
 
-    return {
-        "message": "Account created. Please complete the setup wizard.",
-        "token": create_token(tenant.id, tenant.email),
-        "tenant_id": tenant.id,
-        "is_setup_complete": False,
-    }
+        return {
+            "message": "Account created. Please complete the setup wizard.",
+            "token": create_token(tenant.id, tenant.email),
+            "tenant_id": tenant.id,
+            "is_setup_complete": False,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[Register Error] {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"Registration error: {type(e).__name__}: {str(e)}")
