@@ -19,10 +19,12 @@ def _headers(tenant: Tenant):
 
 
 def _check_ready(tenant: Tenant):
+    if not tenant.vapi_api_key:
+        raise HTTPException(status_code=400, detail="No Vapi API key found. Please complete the setup wizard.")
     if not tenant.vapi_assistant_id:
-        raise HTTPException(status_code=400, detail="Setup not complete. Go to /setup first.")
+        raise HTTPException(status_code=400, detail="AI assistant not created yet. Please complete the setup wizard.")
     if not tenant.vapi_phone_number_id:
-        raise HTTPException(status_code=400, detail="No phone number configured. Complete setup.")
+        raise HTTPException(status_code=400, detail="No phone number configured. Please complete the setup wizard.")
 
 
 # ── Single Call ───────────────────────────────────────────────────────────────
@@ -44,10 +46,25 @@ async def make_call(body: CallRequest, tenant: Tenant = Depends(get_current_tena
         "phoneNumberId": tenant.vapi_phone_number_id,
         "metadata": {**body.metadata, "tenant_id": tenant.id},
     }
+
+    print(f"[Call] Dialing {body.phone_number} | assistant={tenant.vapi_assistant_id} | phone_id={tenant.vapi_phone_number_id}")
+
     async with httpx.AsyncClient() as client:
-        r = await client.post(f"{_VAPI_BASE}/call/phone", json=payload, headers=_headers(tenant), timeout=30)
-        r.raise_for_status()
+        r = await client.post(
+            f"{_VAPI_BASE}/call/phone",
+            json=payload,
+            headers=_headers(tenant),
+            timeout=30,
+        )
+        if not r.is_success:
+            error_body = r.text
+            print(f"[Vapi Call Error] {r.status_code}: {error_body}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Vapi error ({r.status_code}): {error_body}"
+            )
         call = r.json()
+
     return {"status": "calling", "call_id": call.get("id"), "phone_number": body.phone_number}
 
 

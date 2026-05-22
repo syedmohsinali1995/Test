@@ -178,18 +178,34 @@ async function loadCampaigns() {
 
 async function quickCall() {
   const phone = document.getElementById('quickPhone').value.trim();
-  if (!phone) return;
   const el = document.getElementById('callResult');
-  el.innerHTML = '<span class="text-muted">Initiating call...</span>';
-  const r = await api('/call', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({phone_number: phone})
-  });
-  const d = await r.json();
-  el.innerHTML = r.ok
-    ? `<span class="text-success">✅ Call started! Call ID: ${d.call_id}</span>`
-    : `<span class="text-danger">❌ ${d.detail}</span>`;
+
+  if (!phone) {
+    el.innerHTML = '<span class="text-danger">❌ Please enter a phone number</span>';
+    return;
+  }
+  if (!phone.startsWith('+')) {
+    el.innerHTML = '<span class="text-danger">❌ Phone number must start with + (e.g. +923001234567)</span>';
+    return;
+  }
+
+  el.innerHTML = '<span class="text-muted">⏳ Initiating call...</span>';
+
+  try {
+    const r = await api('/call', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({phone_number: phone})
+    });
+    const d = await r.json();
+    if (r.ok) {
+      el.innerHTML = `<span class="text-success">✅ Call started! Call ID: <code>${d.call_id}</code></span>`;
+    } else {
+      el.innerHTML = `<span class="text-danger">❌ ${d.detail || 'Call failed'}</span>`;
+    }
+  } catch(e) {
+    el.innerHTML = `<span class="text-danger">❌ Network error: ${e.message}</span>`;
+  }
 }
 
 function logout() {
