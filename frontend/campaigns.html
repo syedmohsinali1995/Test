@@ -112,7 +112,10 @@ const token = localStorage.getItem('token');
 if (!token) window.location.href = '/app/login.html';
 
 let uploadMode = 'csv';
-const api = (url, opts={}) => fetch(url, {headers:{'Authorization':'Bearer '+token,...(opts.headers||{})}, ...opts});
+function api(url, opts={}) {
+  const {headers: extraHeaders, ...rest} = opts;
+  return fetch(url, {headers: {'Authorization':'Bearer '+token, ...(extraHeaders||{})}, ...rest});
+}
 
 function switchUpload(mode) {
   uploadMode = mode;

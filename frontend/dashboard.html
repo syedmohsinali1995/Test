@@ -132,9 +132,14 @@ const token = localStorage.getItem('token');
 if (!token) window.location.href = '/app/login.html';
 document.getElementById('bizName').textContent = localStorage.getItem('business_name') || '';
 
-const api = (url, opts={}) => fetch(url, {
-  headers: {'Authorization':'Bearer '+token, ...(opts.headers||{})}, ...opts
-});
+// Fixed: extract headers from opts so ...opts doesn't overwrite Authorization
+function api(url, opts={}) {
+  const {headers: extraHeaders, ...rest} = opts;
+  return fetch(url, {
+    headers: {'Authorization': 'Bearer ' + token, ...(extraHeaders||{})},
+    ...rest
+  });
+}
 
 async function loadStats() {
   try {

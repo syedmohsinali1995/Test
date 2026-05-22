@@ -73,7 +73,10 @@ const token = localStorage.getItem('token');
 if (!token) window.location.href = '/app/login.html';
 
 let currentTab = 'leads';
-const api = (url) => fetch(url, {headers:{'Authorization':'Bearer '+token}});
+function api(url, opts={}) {
+  const {headers: extraHeaders, ...rest} = opts;
+  return fetch(url, {headers: {'Authorization':'Bearer '+token, ...(extraHeaders||{})}, ...rest});
+}
 
 function switchTab(tab) {
   currentTab = tab;
