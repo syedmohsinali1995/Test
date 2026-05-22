@@ -119,7 +119,7 @@ Always respond in Urdu script."""
         },
         "transcriber": {
             "provider": "deepgram",
-            "model": "nova-2",
+            "model": "whisper",
             "language": "ur",
         },
         "endCallMessage": "خدا حافظ! آپ کا دن اچھا گزرے۔",
